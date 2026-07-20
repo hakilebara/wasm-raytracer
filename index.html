@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAssembly RayTracer</title>
+</head>
+
+<body>
+</body>
+
+<noscript>
+  <main style="display: grid">
+    <h1 style="margin: auto">
+      This webpage requires JavaScript to be enabled to work.
+    </h1>
+  </main>
+</noscript>
+
+<script>
+  (async () => {
+    let {module, instance} = await WebAssembly.instantiateStreaming(fetch("wasm-raytracer.wasm"))
+    console.log(instance.exports.add(4, 5))
+  })()
+</script>
+<style type="text/css">
+  html,
+  body,
+  main {
+    margin: 0;
+    height: 100%;
+  }
+
+</style>
+
+</html>
