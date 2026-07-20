@@ -20,8 +20,16 @@
 
 <script>
   (async () => {
-    let {module, instance} = await WebAssembly.instantiateStreaming(fetch("wasm-raytracer.wasm"))
-    console.log(instance.exports.add(4, 5))
+    let memory = new WebAssembly.Memory({initial: 17});
+    let configObj = {
+      env: {
+        memory,
+      }
+    }
+    let {module, instance} = await WebAssembly.instantiateStreaming(fetch("wasm-raytracer.wasm"), configObj);
+    instance.exports.shared_buffer(0, 1);
+    let bytes = new Uint8Array(memory.buffer, 0, 1);
+    console.log(bytes);
   })()
 </script>
 <style type="text/css">
