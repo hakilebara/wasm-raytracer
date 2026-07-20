@@ -1,0 +1,24 @@
+html,
+body,
+main {
+  margin: 0;
+}
+
+body {
+  margin: 0 auto;
+  max-width: 900px;
+  font-size: 18px;
+  padding: 30px;
+}
+
+h1 {
+  text-align: center;
+  font-style: italic;
+  font-size: 52px;
+  margin-bottom: 48px;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+main {
+  text-align: center;
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAssembly RayTracer</title>
+  <link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+
+<body>
+  <h1>WebAssembly Ray Tracing</h1>
+  <p>Ray tracing is a light simulation algorithm used for making renderings of 3D scenes. This ray
+    tracer uses
+    WebAssembly to run in the browser at near native speed. This implementation is CPU intensive as the color of each
+    pixel of the canvas is determined through a path tracing algorithm.</p>
+  <main>
+    <canvas id="canvas" height="512" width="512" />
+  </main>
+</body>
+
+<noscript>
+  <main style="display: grid">
+    <h1 style="margin: auto">
+      This webpage requires JavaScript to be enabled to work.
+    </h1>
+  </main>
+</noscript>
+
+<script type="module" src="main.js"></script>
+
+</html>
