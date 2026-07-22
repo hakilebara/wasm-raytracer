@@ -119,33 +119,32 @@ fn dot(v1: &Vec3, v2: &Vec3) -> f64 {
     v1.0 * v2.0 + v1.1 * v2.1 + v1.2 * v2.2
 }
 
+fn compute_intensity(intensity: f64, l: Vec3, n: Vec3) -> f64 {
+    let n_dot_l = dot(&l, &n);
+    if n_dot_l > 0.0 {
+        intensity * n_dot_l / (n.len() * l.len())
+    } else {
+        0.0
+    }
+}
+
 fn compute_lighting(point: Vec3, n: Vec3) -> f64 {
     let mut i = 0.0;
     for light in &LIGHTS {
-        match light {
-            Light::Ambient { intensity } => i += intensity,
+        i += match *light {
+            Light::Ambient { intensity } => intensity,
             Light::Point {
                 intensity,
                 position,
             } => {
-                // TODO: extract into a helper "compute_intensity"
-                let l = *position - point;
-                let n_dot_l = dot(&l, &n);
-                if n_dot_l > 0.0 {
-                    i += intensity * n_dot_l / (n.len() * l.len())
-                }
+                let l = position - point;
+                compute_intensity(intensity, l, n)
             }
             Light::Directional {
                 intensity,
                 direction,
-            } => {
-                let l = direction;
-                let n_dot_l = dot(l, &n);
-                if n_dot_l > 0.0 {
-                    i += intensity * n_dot_l / (n.len() * l.len())
-                }
-            }
-        };
+            } => compute_intensity(intensity, direction, n),
+        }
     }
     i
 }
