@@ -47,6 +47,7 @@ struct Sphere {
     center: Vec3,
     radius: f64,
     color: Vec3,
+    specular: i32,
 }
 
 enum Light {
@@ -72,21 +73,25 @@ const SPHERES: [Sphere; 4] = [
         center: Vec3(0.0, -1.0, 3.0),
         radius: 1.0,
         color: Vec3(255.0, 0.0, 0.0),
+        specular: 500,
     },
     Sphere {
         center: Vec3(2.0, 0.0, 4.0),
         radius: 1.0,
         color: Vec3(0.0, 0.0, 255.0),
+        specular: 500,
     },
     Sphere {
         center: Vec3(-2.0, 0.0, 4.0),
         radius: 1.0,
         color: Vec3(0.0, 255.0, 0.0),
+        specular: 10,
     },
     Sphere {
         center: Vec3(0.0, -5001.0, 0.0),
         radius: 5000.0,
         color: Vec3(255.0, 255.0, 0.0),
+        specular: 1000,
     },
 ];
 
@@ -119,16 +124,19 @@ fn dot(v1: &Vec3, v2: &Vec3) -> f64 {
     v1.0 * v2.0 + v1.1 * v2.1 + v1.2 * v2.2
 }
 
-fn compute_intensity(intensity: f64, l: Vec3, n: Vec3) -> f64 {
+fn compute_intensity(intensity: f64, l: Vec3, n: Vec3, v: Vec3, s: i32) -> f64 {
     let n_dot_l = dot(&l, &n);
+    let r = n * dot(&n, &l) * 2.0 - l;
+    let r_dot_v = dot(&r, &v);
+
     if n_dot_l > 0.0 {
-        intensity * n_dot_l / (n.len() * l.len())
+        intensity * (n_dot_l / (n.len() * l.len()) + (r_dot_v / (r.len() + v.len())).powi(s))
     } else {
         0.0
     }
 }
 
-fn compute_lighting(point: Vec3, n: Vec3) -> f64 {
+fn compute_lighting(point: Vec3, n: Vec3, v: Vec3, sphere: &Sphere) -> f64 {
     let mut i = 0.0;
     for light in &LIGHTS {
         i += match *light {
@@ -138,12 +146,12 @@ fn compute_lighting(point: Vec3, n: Vec3) -> f64 {
                 position,
             } => {
                 let l = position - point;
-                compute_intensity(intensity, l, n)
+                compute_intensity(intensity, l, n, v, sphere.specular)
             }
             Light::Directional {
                 intensity,
                 direction,
-            } => compute_intensity(intensity, direction, n),
+            } => compute_intensity(intensity, direction, n, v, sphere.specular),
         }
     }
     i
@@ -167,7 +175,7 @@ fn trace_ray(origin: &Vec3, ray: &Vec3, tmin: f64, tmax: f64) -> Vec3 {
         // closest_sphere.color
         let p = *origin + *ray * closest_t; // compute intersection point
         let n = p - closest_sphere.center; // compute sphere normal at intersection
-        closest_sphere.color * compute_lighting(p, n.normalize())
+        closest_sphere.color * compute_lighting(p, n.normalize(), *ray * (-1.0), &closest_sphere)
     } else {
         Vec3(255.0, 255.0, 255.0)
     }
