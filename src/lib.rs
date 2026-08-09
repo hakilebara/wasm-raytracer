@@ -125,15 +125,23 @@ fn dot(v1: &Vec3, v2: &Vec3) -> f64 {
 }
 
 fn compute_intensity(intensity: f64, l: Vec3, n: Vec3, v: Vec3, s: i32) -> f64 {
-    let n_dot_l = dot(&l, &n);
-    let r = n * dot(&n, &l) * 2.0 - l;
-    let r_dot_v = dot(&r, &v);
+    let mut i = 0.0;
 
+    // Diffuse
+    let n_dot_l = dot(&l, &n);
     if n_dot_l > 0.0 {
-        intensity * (n_dot_l / (n.len() * l.len()) + (r_dot_v / (r.len() + v.len())).powi(s))
-    } else {
-        0.0
+        i += intensity * n_dot_l / (n.len() * l.len());
     }
+
+    // Specular
+    if s != -1 {
+        let r = n * dot(&n, &l) * 2.0 - l;
+        let r_dot_v = dot(&r, &v);
+        if r_dot_v > 0.0 {
+            i += intensity * (r_dot_v / (r.len() * v.len())).powi(s);
+        }
+    }
+    i
 }
 
 fn compute_lighting(point: Vec3, n: Vec3, v: Vec3, sphere: &Sphere) -> f64 {
