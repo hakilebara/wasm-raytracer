@@ -7,7 +7,7 @@ mod vec;
 use vec::Vec3;
 
 mod scene;
-use scene::{LIGHTS, Light, SPHERES, Sphere};
+use scene::{Light, Sphere, LIGHTS, SPHERES};
 
 fn dot(v1: &Vec3, v2: &Vec3) -> f64 {
     v1.0 * v2.0 + v1.1 * v2.1 + v1.2 * v2.2
@@ -21,13 +21,26 @@ fn canvas_to_viewport(x: f64, y: f64) -> Vec3 {
     )
 }
 
-fn trace_ray(origin: &Vec3, ray: &Vec3, tmin: f64, tmax: f64) -> Vec3 {
+fn trace_ray(origin: &Vec3, ray: &Vec3, tmin: f64, tmax: f64, depth: u32) -> Vec3 {
     let (closest_sphere, closest_t) = closest_intersection(origin, ray, tmin, tmax);
     if let Some(closest_sphere) = closest_sphere {
         // closest_sphere.color
         let p = *origin + *ray * closest_t; // compute intersection point
         let n = p - closest_sphere.center; // compute sphere normal at intersection
-        closest_sphere.color * compute_lighting(p, n.normalize(), *ray * (-1.0), &closest_sphere)
+        let local_color = closest_sphere.color
+            * compute_lighting(p, n.normalize(), *ray * (-1.0), &closest_sphere);
+
+        // If we hit the recursion limit or the object is not reflective, we're done
+        if depth <= 0 || closest_sphere.reflective <= 0.0 {
+            return local_color;
+        }
+
+        // Compute the reflected color
+        let r = reflect_ray(*ray * (-1.0), n);
+        let reflected_color = trace_ray(&p, &r, 0.001, f64::INFINITY, depth - 1);
+
+        return local_color * (1.0 - closest_sphere.reflective)
+            + reflected_color * closest_sphere.reflective;
     } else {
         Vec3(0.0, 0.0, 0.0)
     }
@@ -94,6 +107,10 @@ fn compute_lighting(point: Vec3, n: Vec3, v: Vec3, sphere: &Sphere) -> f64 {
     i
 }
 
+fn reflect_ray(r: Vec3, n: Vec3) -> Vec3 {
+    n * dot(&n, &r) * 2.0 - r
+}
+
 fn compute_light_intensity(point: Vec3, intensity: f64, l: Vec3, n: Vec3, v: Vec3, s: i32) -> f64 {
     let mut i = 0.0;
 
@@ -111,7 +128,7 @@ fn compute_light_intensity(point: Vec3, intensity: f64, l: Vec3, n: Vec3, v: Vec
 
     // Specular
     if s != -1 {
-        let r = n * dot(&n, &l) * 2.0 - l;
+        let r = reflect_ray(l, n);
         let r_dot_v = dot(&r, &v);
         if r_dot_v > 0.0 {
             i += intensity * (r_dot_v / (r.len() * v.len())).powi(s);
@@ -130,7 +147,7 @@ pub extern "C" fn raytrace(ptr: *mut u8, len: usize) {
     for y in (CANVAS_HEIGHT / -2..CANVAS_HEIGHT / 2).rev() {
         for x in CANVAS_WIDTH / -2..CANVAS_WIDTH / 2 {
             let ray = canvas_to_viewport(x as f64, y as f64);
-            let color = trace_ray(&origin, &ray, 1.0, f64::INFINITY);
+            let color = trace_ray(&origin, &ray, 1.0, f64::INFINITY, 2);
             let pixel = pixels.next().unwrap();
             pixel[0] = color.0.ceil() as u8;
             pixel[1] = color.1.ceil() as u8;
