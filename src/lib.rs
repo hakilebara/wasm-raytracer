@@ -1,99 +1,17 @@
-use std::ops::{Add, Mul, Sub};
-
 const CANVAS_WIDTH: isize = 512;
 const CANVAS_HEIGHT: isize = 512;
 const VIEWPORT_WIDTH: f64 = 1.0;
 const VIEWPORT_HEIGHT: f64 = 1.0;
 
-#[derive(Clone, Copy)]
-struct Vec3(f64, f64, f64);
+mod vec;
+use vec::Vec3;
 
-impl Vec3 {
-    fn len(&self) -> f64 {
-        (self.0.powi(2) + self.1.powi(2) + self.2.powi(2)).sqrt()
-    }
+mod scene;
+use scene::{LIGHTS, Light, SPHERES, Sphere};
 
-    fn normalize(self) -> Self {
-        let length = self.len();
-        Vec3(self.0 / length, self.1 / length, self.2 / length)
-    }
+fn dot(v1: &Vec3, v2: &Vec3) -> f64 {
+    v1.0 * v2.0 + v1.1 * v2.1 + v1.2 * v2.2
 }
-
-impl Add for Vec3 {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
-    }
-}
-
-impl Sub for Vec3 {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
-    }
-}
-
-impl Mul<f64> for Vec3 {
-    type Output = Self;
-
-    fn mul(self, rhs: f64) -> Self::Output {
-        Self(self.0 * rhs, self.1 * rhs, self.2 * rhs)
-    }
-}
-
-struct Sphere {
-    center: Vec3,
-    radius: f64,
-    color: Vec3,
-    specular: i32,
-}
-
-enum Light {
-    Ambient { intensity: f64 },
-    Point { intensity: f64, position: Vec3 },
-    Directional { intensity: f64, direction: Vec3 },
-}
-
-const LIGHTS: [Light; 3] = [
-    Light::Ambient { intensity: 0.2 },
-    Light::Point {
-        intensity: 0.6,
-        position: Vec3(2.0, 1.0, 0.0),
-    },
-    Light::Directional {
-        intensity: 0.2,
-        direction: Vec3(1.0, 4.0, 4.0),
-    },
-];
-
-const SPHERES: [Sphere; 4] = [
-    Sphere {
-        center: Vec3(0.0, -1.0, 3.0),
-        radius: 1.0,
-        color: Vec3(255.0, 0.0, 0.0),
-        specular: 500,
-    },
-    Sphere {
-        center: Vec3(2.0, 0.0, 4.0),
-        radius: 1.0,
-        color: Vec3(0.0, 0.0, 255.0),
-        specular: 500,
-    },
-    Sphere {
-        center: Vec3(-2.0, 0.0, 4.0),
-        radius: 1.0,
-        color: Vec3(0.0, 255.0, 0.0),
-        specular: 10,
-    },
-    Sphere {
-        center: Vec3(0.0, -5001.0, 0.0),
-        radius: 5000.0,
-        color: Vec3(255.0, 255.0, 0.0),
-        specular: 1000,
-    },
-];
 
 fn canvas_to_viewport(x: f64, y: f64) -> Vec3 {
     Vec3(
@@ -101,6 +19,40 @@ fn canvas_to_viewport(x: f64, y: f64) -> Vec3 {
         y * VIEWPORT_HEIGHT / CANVAS_HEIGHT as f64,
         1.0,
     )
+}
+
+fn trace_ray(origin: &Vec3, ray: &Vec3, tmin: f64, tmax: f64) -> Vec3 {
+    let (closest_sphere, closest_t) = closest_intersection(origin, ray, tmin, tmax);
+    if let Some(closest_sphere) = closest_sphere {
+        // closest_sphere.color
+        let p = *origin + *ray * closest_t; // compute intersection point
+        let n = p - closest_sphere.center; // compute sphere normal at intersection
+        closest_sphere.color * compute_lighting(p, n.normalize(), *ray * (-1.0), &closest_sphere)
+    } else {
+        Vec3(0.0, 0.0, 0.0)
+    }
+}
+
+fn closest_intersection<'a>(
+    origin: &'a Vec3,
+    ray: &'a Vec3,
+    tmin: f64,
+    tmax: f64,
+) -> (Option<&'a Sphere>, f64) {
+    let mut closest_t = f64::INFINITY;
+    let mut closest_sphere: Option<&Sphere> = None;
+    for sphere in &SPHERES {
+        let (t1, t2) = intersect_ray_sphere(origin, ray, sphere);
+        if tmin < t1 && t1 < tmax && t1 < closest_t {
+            closest_t = t1;
+            closest_sphere = Some(sphere);
+        }
+        if tmin < t2 && t2 < tmax && t2 < closest_t {
+            closest_t = t2;
+            closest_sphere = Some(sphere);
+        }
+    }
+    (closest_sphere, closest_t)
 }
 
 fn intersect_ray_sphere(origin: &Vec3, ray: &Vec3, sphere: &Sphere) -> (f64, f64) {
@@ -120,12 +72,36 @@ fn intersect_ray_sphere(origin: &Vec3, ray: &Vec3, sphere: &Sphere) -> (f64, f64
     }
 }
 
-fn dot(v1: &Vec3, v2: &Vec3) -> f64 {
-    v1.0 * v2.0 + v1.1 * v2.1 + v1.2 * v2.2
+// * `point` - The intersection point of an object surface and a ray
+fn compute_lighting(point: Vec3, n: Vec3, v: Vec3, sphere: &Sphere) -> f64 {
+    let mut i = 0.0;
+    for light in &LIGHTS {
+        i += match *light {
+            Light::Ambient { intensity } => intensity,
+            Light::Point {
+                intensity,
+                position,
+            } => {
+                let l = position - point;
+                compute_light_intensity(point, intensity, l, n, v, sphere.specular)
+            }
+            Light::Directional {
+                intensity,
+                direction,
+            } => compute_light_intensity(point, intensity, direction, n, v, sphere.specular),
+        }
+    }
+    i
 }
 
-fn compute_intensity(intensity: f64, l: Vec3, n: Vec3, v: Vec3, s: i32) -> f64 {
+fn compute_light_intensity(point: Vec3, intensity: f64, l: Vec3, n: Vec3, v: Vec3, s: i32) -> f64 {
     let mut i = 0.0;
+
+    // Shadow check
+    let (shadow_sphere, _) = closest_intersection(&point, &l, 0.001, f64::INFINITY);
+    if let Some(_) = shadow_sphere {
+        return 0.0;
+    }
 
     // Diffuse
     let n_dot_l = dot(&l, &n);
@@ -142,51 +118,6 @@ fn compute_intensity(intensity: f64, l: Vec3, n: Vec3, v: Vec3, s: i32) -> f64 {
         }
     }
     i
-}
-
-fn compute_lighting(point: Vec3, n: Vec3, v: Vec3, sphere: &Sphere) -> f64 {
-    let mut i = 0.0;
-    for light in &LIGHTS {
-        i += match *light {
-            Light::Ambient { intensity } => intensity,
-            Light::Point {
-                intensity,
-                position,
-            } => {
-                let l = position - point;
-                compute_intensity(intensity, l, n, v, sphere.specular)
-            }
-            Light::Directional {
-                intensity,
-                direction,
-            } => compute_intensity(intensity, direction, n, v, sphere.specular),
-        }
-    }
-    i
-}
-
-fn trace_ray(origin: &Vec3, ray: &Vec3, tmin: f64, tmax: f64) -> Vec3 {
-    let mut closest_t = f64::INFINITY;
-    let mut closest_sphere: Option<&Sphere> = None;
-    for sphere in &SPHERES {
-        let (t1, t2) = intersect_ray_sphere(origin, ray, sphere);
-        if tmin < t1 && t1 < tmax && t1 < closest_t {
-            closest_t = t1;
-            closest_sphere = Some(sphere);
-        }
-        if tmin < t2 && t2 < tmax && t2 < closest_t {
-            closest_t = t2;
-            closest_sphere = Some(sphere);
-        }
-    }
-    if let Some(closest_sphere) = closest_sphere {
-        // closest_sphere.color
-        let p = *origin + *ray * closest_t; // compute intersection point
-        let n = p - closest_sphere.center; // compute sphere normal at intersection
-        closest_sphere.color * compute_lighting(p, n.normalize(), *ray * (-1.0), &closest_sphere)
-    } else {
-        Vec3(255.0, 255.0, 255.0)
-    }
 }
 
 #[unsafe(no_mangle)]
