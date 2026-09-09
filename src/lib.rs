@@ -1,3 +1,9 @@
+mod bindings {
+    wit_bindgen::generate!({
+        path: "wit/raytraycer.wit",
+    });
+}
+
 const CANVAS_WIDTH: isize = 512;
 const CANVAS_HEIGHT: isize = 512;
 const VIEWPORT_WIDTH: f64 = 1.0;
@@ -137,21 +143,24 @@ fn compute_light_intensity(point: Vec3, intensity: f64, l: Vec3, n: Vec3, v: Vec
     i
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn raytrace(ptr: *mut u8, len: usize) {
-    let slice = unsafe { std::slice::from_raw_parts_mut(ptr, len) };
-    let origin = Vec3(0.0, 0.0, 0.0);
+struct Component;
 
-    let mut pixels = slice.chunks_exact_mut(3);
+impl bindings::Guest for Component {
+    fn raytrace() -> Vec<u8> {
+        let origin = Vec3(0.0, 0.0, 0.0);
+        let mut ans = vec![];
 
-    for y in (CANVAS_HEIGHT / -2..CANVAS_HEIGHT / 2).rev() {
-        for x in CANVAS_WIDTH / -2..CANVAS_WIDTH / 2 {
-            let ray = canvas_to_viewport(x as f64, y as f64);
-            let color = trace_ray(&origin, &ray, 1.0, f64::INFINITY, 2);
-            let pixel = pixels.next().unwrap();
-            pixel[0] = color.0.ceil() as u8;
-            pixel[1] = color.1.ceil() as u8;
-            pixel[2] = color.2.ceil() as u8;
+        for y in (CANVAS_HEIGHT / -2..CANVAS_HEIGHT / 2).rev() {
+            for x in CANVAS_WIDTH / -2..CANVAS_WIDTH / 2 {
+                let ray = canvas_to_viewport(x as f64, y as f64);
+                let color = trace_ray(&origin, &ray, 1.0, f64::INFINITY, 2);
+                ans.push(color.0.ceil() as u8);
+                ans.push(color.1.ceil() as u8);
+                ans.push(color.2.ceil() as u8);
+            }
         }
+        ans
     }
 }
+
+bindings::export!(Component with_types_in bindings);
