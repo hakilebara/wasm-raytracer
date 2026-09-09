@@ -1,0 +1,11 @@
+{
+  "name": "wasm-raytracer-web",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@bytecodealliance/preview2-shim": "^0.24.1"
+  },
+  "devDependencies": {
+    "@bytecodealliance/jco": "1.33.0"
+  }
+}

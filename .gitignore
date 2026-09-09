@@ -1,3 +1,6 @@
 /target
 .DS_Store
 /dist
+web/node_modules
+web/raytracer
+web/shim

@@ -22,9 +22,31 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown
+          targets: wasm32-wasip2
 
-      - run: make
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install npm dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Build wasm component
+        run: make build
+
+      - name: Transpile wasm component with jco
+        run: npx jco transpile ../target/wasm32-wasip2/release/wasm_raytracer.wasm -o raytracer
+        working-directory: web
+
+      - name: Copy browser shim
+        run: mkdir -p shim && cp node_modules/@bytecodealliance/preview2-shim/dist/browser/{cli,clocks,common,config,environment,io}.js shim/
+        working-directory: web
+
+      - name: Assemble dist
+        run: make
 
       - uses: actions/configure-pages@v4
 
