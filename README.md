@@ -1,5 +1,5 @@
 # wasm-raytracer
-a raytracer written in Rust compiled WebAssembly
+a raytracer written in Rust compiled to a WebAssembly Component
 
 ## Run locally
 
