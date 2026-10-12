@@ -15,10 +15,13 @@ RAYTRACER_DST := dist/raytracer
 
 .PHONY: $(SHIM_DST) $(RAYTRACER_DST)
 
-all: build $(WASM_DST) $(HTML_DST) $(JS_DST) $(CSS_DST) $(SHIM_DST) $(RAYTRACER_DST)
+all: build jco $(WASM_DST) $(HTML_DST) $(JS_DST) $(CSS_DST) $(SHIM_DST) $(RAYTRACER_DST)
 
 build:
 	cargo build --target wasm32-wasip2 --release
+
+jco:
+	npx jco transpile target/wasm32-wasip2/release/wasm_raytracer.wasm -o web/raytracer
 
 dist:
 	mkdir -p dist
