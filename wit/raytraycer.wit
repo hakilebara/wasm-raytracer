@@ -1,5 +1,5 @@
 package hakilebara:wasm-raytracer;
 
 world root {
-  export raytrace: func() -> list<u8>;
+  export raytrace: func(rotation: f64) -> list<u8>;
 }

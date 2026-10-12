@@ -10,6 +10,7 @@ const VIEWPORT_WIDTH: f64 = 1.0;
 const VIEWPORT_HEIGHT: f64 = 1.0;
 
 mod vec;
+
 use vec::Vec3;
 
 mod scene;
@@ -146,14 +147,14 @@ fn compute_light_intensity(point: Vec3, intensity: f64, l: Vec3, n: Vec3, v: Vec
 struct Component;
 
 impl bindings::Guest for Component {
-    fn raytrace() -> Vec<u8> {
+    fn raytrace(rotation: f64) -> Vec<u8> {
         let origin = Vec3(0.0, 0.0, 0.0);
         let mut ans = vec![];
 
         for y in (CANVAS_HEIGHT / -2..CANVAS_HEIGHT / 2).rev() {
             for x in CANVAS_WIDTH / -2..CANVAS_WIDTH / 2 {
                 let ray = canvas_to_viewport(x as f64, y as f64);
-                let color = trace_ray(&origin, &ray, 1.0, f64::INFINITY, 2);
+                let color = trace_ray(&origin, &ray.rotate_y(rotation), 1.0, f64::INFINITY, 2);
                 ans.push(color.0.ceil() as u8);
                 ans.push(color.1.ceil() as u8);
                 ans.push(color.2.ceil() as u8);

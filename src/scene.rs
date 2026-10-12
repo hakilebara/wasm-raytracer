@@ -26,7 +26,7 @@ pub const LIGHTS: [Light; 3] = [
     },
 ];
 
-pub const SPHERES: [Sphere; 4] = [
+pub const SPHERES: [Sphere; 5] = [
     Sphere {
         center: Vec3(0.0, -1.0, 3.0),
         radius: 1.0,
@@ -47,6 +47,13 @@ pub const SPHERES: [Sphere; 4] = [
         color: Vec3(0.0, 255.0, 0.0),
         specular: 10,
         reflective: 0.4,
+    },
+    Sphere {
+        center: Vec3(0.0, 0.0, -3.0),
+        radius: 1.0,
+        color: Vec3(255.0, 0.0, 0.0),
+        specular: 500,
+        reflective: 0.2,
     },
     Sphere {
         center: Vec3(0.0, -5001.0, 0.0),

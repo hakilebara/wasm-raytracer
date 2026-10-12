@@ -12,6 +12,15 @@ impl Vec3 {
         let length = self.len();
         Vec3(self.0 / length, self.1 / length, self.2 / length)
     }
+
+    pub fn rotate_y(self, theta: f64) -> Self {
+        let (sin, cos) = theta.sin_cos();
+        Vec3(
+            cos * self.0 + sin * self.2,
+            self.1,
+            cos * self.2 - sin * self.0,
+        )
+    }
 }
 
 impl Add for Vec3 {
